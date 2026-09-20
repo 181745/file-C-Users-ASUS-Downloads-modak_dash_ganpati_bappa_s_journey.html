@@ -1,0 +1,1681 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>MODAK DASH — Ganpati Bappa’s Journey</title>
+
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Three.js CDN -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@700;900&family=Poppins:wght@400;600;700;800;900&display=swap" rel="stylesheet">
+    <!-- FontAwesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+    <style>
+        * {
+            user-select: none;
+            -webkit-user-select: none;
+            touch-action: manipulation;
+        }
+
+        body {
+            margin: 0;
+            padding: 0;
+            overflow: hidden;
+            background-color: #120300;
+            font-family: 'Poppins', sans-serif;
+            color: #fff;
+        }
+
+        .font-cinzel {
+            font-family: 'Cinzel', serif;
+        }
+
+        /* Glassmorphism cards */
+        .glass-panel {
+            background: rgba(45, 12, 5, 0.75);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border: 2px solid rgba(255, 180, 50, 0.3);
+            box-shadow: 0 12px 32px 0 rgba(0, 0, 0, 0.6), inset 0 0 15px rgba(255, 180, 0, 0.15);
+        }
+
+        .gold-gradient-text {
+            background: linear-gradient(135deg, #FFF176 0%, #FFB300 50%, #FF6F00 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            text-shadow: 0px 4px 12px rgba(255, 180, 0, 0.3);
+        }
+
+        .gold-btn {
+            background: linear-gradient(135deg, #FFB300 0%, #FF6F00 100%);
+            box-shadow: 0 6px 20px rgba(255, 111, 0, 0.5), inset 0 2px 4px rgba(255, 255, 255, 0.4);
+            transition: all 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        }
+
+        .gold-btn:hover {
+            transform: translateY(-2px) scale(1.02);
+            box-shadow: 0 10px 25px rgba(255, 111, 0, 0.7), inset 0 2px 4px rgba(255, 255, 255, 0.6);
+        }
+
+        .gold-btn:active {
+            transform: translateY(1px) scale(0.98);
+        }
+
+        /* Festive Glow Animations */
+        @keyframes pulse-glow {
+            0%, 100% { filter: drop-shadow(0 0 15px rgba(255, 179, 0, 0.8)); }
+            50% { filter: drop-shadow(0 0 30px rgba(255, 111, 0, 1)); }
+        }
+
+        .animate-glow {
+            animation: pulse-glow 2.5s infinite ease-in-out;
+        }
+
+        /* Toast Popup Animation */
+        @keyframes slideInDown {
+            from { transform: translateY(-100%) translateX(-50%); opacity: 0; }
+            to { transform: translateY(0) translateX(-50%); opacity: 1; }
+        }
+
+        .toast-active {
+            animation: slideInDown 0.4s ease-out forwards;
+        }
+
+        /* Canvas overlay fixes */
+        #game-canvas {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 1;
+        }
+
+        .ui-layer {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 10;
+            pointer-events: none;
+        }
+
+        .interactive {
+            pointer-events: auto;
+        }
+    </style>
+</head>
+<body class="w-screen h-screen overflow-hidden">
+
+    <!-- 3D WebGL Canvas -->
+    <canvas id="game-canvas"></canvas>
+
+    <!-- UI Overlay Layer -->
+    <div id="ui-layer" class="ui-layer flex flex-col justify-between p-4 sm:p-6">
+
+        <!-- TOP HUD (In-Game) -->
+        <div id="hud-top" class="hidden w-full max-w-4xl mx-auto flex items-start justify-between gap-4">
+            <!-- Left Info: Score & Distance -->
+            <div class="glass-panel rounded-2xl p-3 sm:p-4 flex flex-col gap-1 min-w-[130px] sm:min-w-[160px]">
+                <div class="flex items-center gap-2">
+                    <i class="fa-solid fa-trophy text-amber-400 text-sm sm:text-base"></i>
+                    <span class="text-xs uppercase tracking-wider text-amber-200/80 font-bold">Score</span>
+                </div>
+                <div id="hud-score" class="text-xl sm:text-3xl font-black font-cinzel text-amber-300">0</div>
+                <div class="flex items-center gap-2 mt-1">
+                    <i class="fa-solid fa-route text-orange-400 text-xs"></i>
+                    <span id="hud-distance" class="text-xs sm:text-sm font-bold text-orange-200">0m</span>
+                </div>
+            </div>
+
+            <!-- Combo Badge & Power-Up Active Status Container -->
+            <div class="flex flex-col items-center gap-2">
+                <div id="hud-combo" class="hidden scale-0 transition-transform duration-300 glass-panel border-amber-400 px-4 py-1.5 rounded-full flex items-center gap-2 bg-gradient-to-r from-amber-600/80 to-red-600/80 shadow-lg">
+                    <i class="fa-solid fa-bolt text-yellow-300 animate-bounce"></i>
+                    <span id="hud-combo-text" class="text-lg sm:text-xl font-black font-cinzel text-yellow-200">2x COMBO</span>
+                </div>
+
+                <div id="hud-powerups" class="flex flex-col gap-2 w-44 sm:w-52">
+                    <!-- Power-up timer bars dynamically generated here -->
+                </div>
+            </div>
+
+            <!-- Right Info: Modaks & Shield -->
+            <div class="glass-panel rounded-2xl p-3 sm:p-4 flex flex-col gap-1 min-w-[120px] sm:min-w-[150px] text-right">
+                <div class="flex items-center justify-end gap-2">
+                    <span class="text-xs uppercase tracking-wider text-amber-200/80 font-bold">Modaks</span>
+                    <span class="text-xl">🍥</span>
+                </div>
+                <div id="hud-modaks" class="text-xl sm:text-3xl font-black font-cinzel text-amber-300">0</div>
+                
+                <!-- Shield Indicator -->
+                <div id="hud-shield-indicator" class="hidden flex items-center justify-end gap-1.5 mt-1 text-sky-300 text-xs font-bold">
+                    <span>BLESSING ACTIVE</span>
+                    <i class="fa-solid fa-shield-halved text-sky-400"></i>
+                </div>
+            </div>
+        </div>
+
+        <!-- Toast Notification Popup for Mission Complete -->
+        <div id="toast-notification" class="fixed top-6 left-1/2 -translate-x-1/2 hidden toast-active glass-panel border-2 border-yellow-400 rounded-full px-6 py-2.5 items-center gap-3 bg-gradient-to-r from-amber-900/90 to-red-900/90 shadow-2xl z-50">
+            <span class="text-2xl">🏆</span>
+            <div>
+                <div class="text-[10px] text-amber-300 font-bold uppercase tracking-widest">Mission Complete!</div>
+                <div id="toast-text" class="text-xs sm:text-sm font-extrabold text-white">Collected 50 Modaks</div>
+            </div>
+        </div>
+
+        <!-- START / TITLE MENU SCREEN -->
+        <div id="menu-start" class="interactive my-auto w-full max-w-lg mx-auto glass-panel rounded-3xl p-6 sm:p-8 flex flex-col items-center text-center shadow-2xl border-2 border-amber-500/40">
+            <!-- Game Title Logo -->
+            <div class="relative mb-4">
+                <div class="text-4xl sm:text-6xl font-black font-cinzel gold-gradient-text tracking-wider leading-tight">
+                    MODAK DASH
+                </div>
+                <div class="text-sm sm:text-lg font-bold text-amber-200 tracking-widest uppercase mt-1">
+                    Ganpati Bappa’s Journey
+                </div>
+                <div class="text-2xl mt-1 animate-glow">🍥 🌸 🪔</div>
+            </div>
+
+            <!-- Stats & Highscore Banner -->
+            <div class="w-full bg-amber-950/60 rounded-2xl p-3 border border-amber-500/30 flex justify-around my-4">
+                <div class="flex flex-col items-center">
+                    <span class="text-[11px] uppercase tracking-wider text-amber-300/70 font-semibold">High Score</span>
+                    <span id="start-highscore" class="text-xl sm:text-2xl font-black text-amber-400 font-cinzel">0</span>
+                </div>
+                <div class="w-px bg-amber-500/30"></div>
+                <div class="flex flex-col items-center">
+                    <span class="text-[11px] uppercase tracking-wider text-amber-300/70 font-semibold">Total Modaks</span>
+                    <span id="start-total-modaks" class="text-xl sm:text-2xl font-black text-amber-300 font-cinzel">0</span>
+                </div>
+            </div>
+
+            <!-- Active Missions List preview -->
+            <div class="w-full text-left my-2">
+                <div class="text-xs uppercase tracking-wider text-amber-300/80 font-bold mb-2 flex items-center gap-1.5">
+                    <i class="fa-solid fa-list-check text-amber-400"></i>
+                    Current Missions
+                </div>
+                <div id="start-missions-container" class="flex flex-col gap-2">
+                    <!-- Mission cards dynamically inserted -->
+                </div>
+            </div>
+
+            <!-- Controls Guide -->
+            <div class="w-full bg-amber-900/30 rounded-xl p-2.5 my-3 border border-amber-500/20 text-xs text-amber-200/80 flex items-center justify-around">
+                <span><kbd class="bg-amber-900 px-1.5 py-0.5 rounded border border-amber-500/50 text-white font-bold">A/D</kbd> or <kbd class="bg-amber-900 px-1.5 py-0.5 rounded border border-amber-500/50 text-white font-bold">←/→</kbd> Switch Lane</span>
+                <span><kbd class="bg-amber-900 px-1.5 py-0.5 rounded border border-amber-500/50 text-white font-bold">W</kbd> or <kbd class="bg-amber-900 px-1.5 py-0.5 rounded border border-amber-500/50 text-white font-bold">↑</kbd> Jump</span>
+                <span><kbd class="bg-amber-900 px-1.5 py-0.5 rounded border border-amber-500/50 text-white font-bold">S</kbd> or <kbd class="bg-amber-900 px-1.5 py-0.5 rounded border border-amber-500/50 text-white font-bold">↓</kbd> Slide</span>
+            </div>
+
+            <!-- Buttons Row -->
+            <div class="w-full flex gap-3 mt-2">
+                <button id="btn-audio-toggle" class="glass-panel p-4 rounded-2xl text-amber-300 hover:text-white hover:border-amber-400 transition-colors flex items-center justify-center">
+                    <i id="audio-icon" class="fa-solid fa-volume-high text-xl"></i>
+                </button>
+                <button id="btn-start" class="gold-btn flex-1 py-4 rounded-2xl text-xl font-black font-cinzel text-amber-950 tracking-wider uppercase flex items-center justify-center gap-2">
+                    <i class="fa-solid fa-play text-amber-950 text-lg"></i>
+                    Start Journey
+                </button>
+            </div>
+        </div>
+
+        <!-- GAME OVER SCREEN -->
+        <div id="menu-gameover" class="hidden interactive my-auto w-full max-w-lg mx-auto glass-panel rounded-3xl p-6 sm:p-8 flex flex-col items-center text-center shadow-2xl border-2 border-red-500/40">
+            <div class="text-3xl sm:text-5xl font-black font-cinzel text-red-400 tracking-wider mb-1">
+                JOURNEY OVER
+            </div>
+            <div class="text-xs sm:text-sm font-semibold text-amber-200/80 mb-4">
+                Ganpati Bappa Morya! Try again to go further!
+            </div>
+
+            <!-- Final Score Display -->
+            <div class="w-full bg-amber-950/80 rounded-2xl p-4 border border-amber-500/40 flex flex-col items-center my-2 relative overflow-hidden">
+                <div id="new-highscore-badge" class="hidden absolute top-2 right-2 bg-gradient-to-r from-yellow-400 to-amber-600 text-amber-950 font-black text-[10px] px-2.5 py-0.5 rounded-full uppercase tracking-widest shadow-md">
+                    NEW HIGH SCORE!
+                </div>
+                <span class="text-xs uppercase tracking-wider text-amber-300/80 font-bold">Final Score</span>
+                <span id="go-final-score" class="text-4xl sm:text-5xl font-black text-amber-300 font-cinzel my-1">0</span>
+
+                <div class="w-full grid grid-cols-2 gap-2 mt-3 pt-3 border-t border-amber-500/20 text-center">
+                    <div>
+                        <span class="text-[10px] uppercase text-amber-300/70 font-bold block">Distance</span>
+                        <span id="go-distance" class="text-lg font-bold text-white">0m</span>
+                    </div>
+                    <div>
+                        <span class="text-[10px] uppercase text-amber-300/70 font-bold block">Modaks Collected</span>
+                        <span id="go-modaks" class="text-lg font-bold text-amber-300">0 🍥</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Missions Completed Summary -->
+            <div class="w-full text-left my-3">
+                <div class="text-xs uppercase tracking-wider text-amber-300/80 font-bold mb-2">Missions Status</div>
+                <div id="go-missions-container" class="flex flex-col gap-1.5">
+                    <!-- Missions summary -->
+                </div>
+            </div>
+
+            <!-- Restart Button -->
+            <button id="btn-restart" class="gold-btn w-full py-4 rounded-2xl text-xl font-black font-cinzel text-amber-950 tracking-wider uppercase flex items-center justify-center gap-2 mt-2">
+                <i class="fa-solid fa-rotate-right text-amber-950 text-lg"></i>
+                Run Again
+            </button>
+        </div>
+
+        <!-- PAUSE BUTTON (In-Game Top Right) -->
+        <button id="btn-pause" class="hidden interactive absolute top-6 right-6 glass-panel p-3 rounded-2xl text-amber-300 hover:text-white z-20">
+            <i class="fa-solid fa-pause text-xl"></i>
+        </button>
+
+        <!-- PAUSE OVERLAY MENU -->
+        <div id="menu-pause" class="hidden interactive my-auto w-full max-w-md mx-auto glass-panel rounded-3xl p-6 sm:p-8 flex flex-col items-center text-center shadow-2xl border-2 border-amber-500/40">
+            <div class="text-3xl font-black font-cinzel text-amber-300 tracking-wider mb-4">
+                GAME PAUSED
+            </div>
+            <div class="w-full flex flex-col gap-3">
+                <button id="btn-resume" class="gold-btn w-full py-3.5 rounded-2xl text-lg font-black font-cinzel text-amber-950 tracking-wider uppercase">
+                    Resume
+                </button>
+                <button id="btn-pause-audio" class="glass-panel w-full py-3 rounded-2xl text-sm font-bold text-amber-200 border border-amber-500/30 hover:border-amber-400">
+                    Toggle Sound
+                </button>
+                <button id="btn-quit" class="glass-panel w-full py-3 rounded-2xl text-sm font-bold text-red-300 border border-red-500/30 hover:border-red-400">
+                    Quit to Menu
+                </button>
+            </div>
+        </div>
+
+        <!-- Touch Screen Control Hints / Gesture Overlay -->
+        <div id="touch-controls" class="hidden interactive absolute inset-0 z-0 flex flex-col justify-between pointer-events-auto sm:hidden">
+            <div class="h-1/3 w-full" id="touch-jump-area"></div>
+            <div class="h-1/3 w-full flex">
+                <div class="w-1/2 h-full" id="touch-left-area"></div>
+                <div class="w-1/2 h-full" id="touch-right-area"></div>
+            </div>
+            <div class="h-1/3 w-full" id="touch-slide-area"></div>
+        </div>
+
+    </div>
+
+    <!-- MAIN GAME SCRIPT MODULES -->
+    <script>
+        // =================================================================
+        // AUDIO MANAGER (Procedural Sound & Dhol Rhythm via Web Audio API)
+        // =================================================================
+        class AudioManager {
+            constructor() {
+                this.ctx = null;
+                this.muted = false;
+                this.dholTimer = null;
+                this.dholStep = 0;
+                this.tempo = 120; // BPM
+            }
+
+            init() {
+                if (this.ctx) return;
+                const AudioCtx = window.AudioContext || window.webkitAudioContext;
+                if (AudioCtx) {
+                    this.ctx = new AudioCtx();
+                }
+            }
+
+            ensureContext() {
+                if (this.ctx && this.ctx.state === 'suspended') {
+                    this.ctx.resume();
+                }
+            }
+
+            toggleMute() {
+                this.muted = !this.muted;
+                if (this.muted && this.dholTimer) {
+                    clearInterval(this.dholTimer);
+                    this.dholTimer = null;
+                } else if (!this.muted) {
+                    this.startDholRhythm();
+                }
+                return this.muted;
+            }
+
+            // Procedural Collect Chime (Temple Bell tone)
+            playCollect() {
+                if (this.muted || !this.ctx) return;
+                this.ensureContext();
+
+                const now = this.ctx.currentTime;
+                const osc = this.ctx.createOscillator();
+                const gain = this.ctx.createGain();
+
+                osc.type = 'sine';
+                // Harmonic bell frequencies
+                osc.frequency.setValueAtTime(1174.66, now); // D6
+                osc.frequency.exponentialRampToValueAtTime(2349.32, now + 0.15); // D7
+
+                gain.gain.setValueAtTime(0.3, now);
+                gain.gain.exponentialRampToValueAtTime(0.001, now + 0.35);
+
+                osc.connect(gain);
+                gain.connect(this.ctx.destination);
+
+                osc.start(now);
+                osc.stop(now + 0.35);
+            }
+
+            // Lane Switch Swoosh (Filtered White Noise)
+            playSwoosh() {
+                if (this.muted || !this.ctx) return;
+                this.ensureContext();
+
+                const now = this.ctx.currentTime;
+                const bufferSize = this.ctx.sampleRate * 0.1; // 100ms
+                const buffer = this.ctx.createBuffer(1, bufferSize, this.ctx.sampleRate);
+                const data = buffer.getChannelData(0);
+                for (let i = 0; i < bufferSize; i++) {
+                    data[i] = Math.random() * 2 - 1;
+                }
+
+                const noise = this.ctx.createBufferSource();
+                noise.buffer = buffer;
+
+                const filter = this.ctx.createBiquadFilter();
+                filter.type = 'bandpass';
+                filter.frequency.setValueAtTime(400, now);
+                filter.frequency.linearRampToValueAtTime(1200, now + 0.08);
+
+                const gain = this.ctx.createGain();
+                gain.gain.setValueAtTime(0.25, now);
+                gain.gain.exponentialRampToValueAtTime(0.01, now + 0.1);
+
+                noise.connect(filter);
+                filter.connect(gain);
+                gain.connect(this.ctx.destination);
+
+                noise.start(now);
+            }
+
+            // Jump Sound
+            playJump() {
+                if (this.muted || !this.ctx) return;
+                this.ensureContext();
+
+                const now = this.ctx.currentTime;
+                const osc = this.ctx.createOscillator();
+                const gain = this.ctx.createGain();
+
+                osc.type = 'triangle';
+                osc.frequency.setValueAtTime(220, now);
+                osc.frequency.exponentialRampToValueAtTime(580, now + 0.2);
+
+                gain.gain.setValueAtTime(0.35, now);
+                gain.gain.exponentialRampToValueAtTime(0.01, now + 0.22);
+
+                osc.connect(gain);
+                gain.connect(this.ctx.destination);
+
+                osc.start(now);
+                osc.stop(now + 0.22);
+            }
+
+            // Slide Sound
+            playSlide() {
+                if (this.muted || !this.ctx) return;
+                this.ensureContext();
+
+                const now = this.ctx.currentTime;
+                const osc = this.ctx.createOscillator();
+                const gain = this.ctx.createGain();
+
+                osc.type = 'sawtooth';
+                osc.frequency.setValueAtTime(320, now);
+                osc.frequency.exponentialRampToValueAtTime(110, now + 0.25);
+
+                gain.gain.setValueAtTime(0.25, now);
+                gain.gain.exponentialRampToValueAtTime(0.01, now + 0.25);
+
+                osc.connect(gain);
+                gain.connect(this.ctx.destination);
+
+                osc.start(now);
+                osc.stop(now + 0.25);
+            }
+
+            // Power-up Activation Arpeggio
+            playPowerup() {
+                if (this.muted || !this.ctx) return;
+                this.ensureContext();
+
+                const notes = [440, 554.37, 659.25, 880]; // A major
+                notes.forEach((freq, idx) => {
+                    const now = this.ctx.currentTime + idx * 0.06;
+                    const osc = this.ctx.createOscillator();
+                    const gain = this.ctx.createGain();
+
+                    osc.type = 'sine';
+                    osc.frequency.setValueAtTime(freq, now);
+
+                    gain.gain.setValueAtTime(0.3, now);
+                    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.25);
+
+                    osc.connect(gain);
+                    gain.connect(this.ctx.destination);
+
+                    osc.start(now);
+                    osc.stop(now + 0.25);
+                });
+            }
+
+            // Crash SFX
+            playCrash() {
+                if (this.muted || !this.ctx) return;
+                this.ensureContext();
+
+                const now = this.ctx.currentTime;
+                const osc = this.ctx.createOscillator();
+                const gain = this.ctx.createGain();
+
+                osc.type = 'square';
+                osc.frequency.setValueAtTime(140, now);
+                osc.frequency.exponentialRampToValueAtTime(30, now + 0.4);
+
+                gain.gain.setValueAtTime(0.5, now);
+                gain.gain.exponentialRampToValueAtTime(0.01, now + 0.4);
+
+                osc.connect(gain);
+                gain.connect(this.ctx.destination);
+
+                osc.start(now);
+                osc.stop(now + 0.4);
+            }
+
+            // Festive Dhol Beat Generator
+            startDholRhythm() {
+                if (this.dholTimer || this.muted) return;
+                const interval = (60 / this.tempo / 4) * 1000; // 16th notes
+                this.dholTimer = setInterval(() => {
+                    this.triggerDholStep();
+                }, interval);
+            }
+
+            stopDholRhythm() {
+                if (this.dholTimer) {
+                    clearInterval(this.dholTimer);
+                    this.dholTimer = null;
+                }
+            }
+
+            triggerDholStep() {
+                if (this.muted || !this.ctx) return;
+                this.ensureContext();
+
+                const step = this.dholStep % 16;
+                const now = this.ctx.currentTime;
+
+                // Bass Dhol Hits (Steps 0, 6, 8, 12)
+                if (step === 0 || step === 6 || step === 8 || step === 12) {
+                    const osc = this.ctx.createOscillator();
+                    const gain = this.ctx.createGain();
+                    osc.type = 'sine';
+                    osc.frequency.setValueAtTime(130, now);
+                    osc.frequency.exponentialRampToValueAtTime(45, now + 0.15);
+
+                    gain.gain.setValueAtTime(0.3, now);
+                    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.18);
+
+                    osc.connect(gain);
+                    gain.connect(this.ctx.destination);
+                    osc.start(now);
+                    osc.stop(now + 0.18);
+                }
+
+                // Treble Treble Hits (Steps 2, 4, 10, 14)
+                if (step === 2 || step === 4 || step === 10 || step === 14) {
+                    const osc = this.ctx.createOscillator();
+                    const gain = this.ctx.createGain();
+                    osc.type = 'triangle';
+                    osc.frequency.setValueAtTime(420, now);
+                    osc.frequency.exponentialRampToValueAtTime(200, now + 0.08);
+
+                    gain.gain.setValueAtTime(0.15, now);
+                    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.08);
+
+                    osc.connect(gain);
+                    gain.connect(this.ctx.destination);
+                    osc.start(now);
+                    osc.stop(now + 0.08);
+                }
+
+                this.dholStep++;
+            }
+        }
+
+        // =================================================================
+        // PROCEDURAL LORD GANESHA CHARACTER CREATOR
+        // =================================================================
+        function createGaneshaCharacter() {
+            const group = new THREE.Group();
+
+            // Materials
+            const skinMat = new THREE.MeshStandardMaterial({ color: 0xFFA07A, roughness: 0.5 }); // Soft terracotta orange-pink
+            const dhotiMat = new THREE.MeshStandardMaterial({ color: 0xFF6F00, roughness: 0.3 }); // Bright Saffron
+            const goldMat = new THREE.MeshStandardMaterial({ color: 0xFFD700, metalness: 0.8, roughness: 0.2 }); // Shiny Gold
+            const rubyMat = new THREE.MeshStandardMaterial({ color: 0xD50000, roughness: 0.1 });
+            const whiteMat = new THREE.MeshStandardMaterial({ color: 0xFFFFFF });
+
+            // 1. Root / Pelvis
+            const pelvis = new THREE.Group();
+            group.add(pelvis);
+
+            // Dhoti Torso
+            const torsoGeo = new THREE.SphereGeometry(0.75, 16, 16);
+            torsoGeo.scale(1.0, 1.15, 0.9);
+            const torso = new THREE.Mesh(torsoGeo, dhotiMat);
+            torso.position.y = 1.35;
+            torso.castShadow = true;
+            pelvis.add(torso);
+
+            // Gold Sash / Uttariya draped across chest
+            const sashGeo = new THREE.TorusGeometry(0.76, 0.08, 8, 24);
+            const sash = new THREE.Mesh(sashGeo, goldMat);
+            sash.rotation.x = Math.PI / 2 + 0.3;
+            sash.rotation.y = 0.4;
+            sash.position.set(0, 1.4, 0);
+            pelvis.add(sash);
+
+            // Gold Necklace
+            const necklaceGeo = new THREE.TorusGeometry(0.55, 0.06, 8, 16);
+            const necklace = new THREE.Mesh(necklaceGeo, goldMat);
+            necklace.rotation.x = Math.PI / 2;
+            necklace.position.set(0, 1.85, 0);
+            pelvis.add(necklace);
+
+            // 2. Head Group
+            const headGroup = new THREE.Group();
+            headGroup.position.set(0, 2.1, 0);
+            pelvis.add(headGroup);
+
+            // Main Head Sphere
+            const headGeo = new THREE.SphereGeometry(0.55, 16, 16);
+            const head = new THREE.Mesh(headGeo, skinMat);
+            head.castShadow = true;
+            headGroup.add(head);
+
+            // Trunk (Curved Elephant Trunk made of tapered segments)
+            const trunkGroup = new THREE.Group();
+            trunkGroup.position.set(0, -0.05, 0.48);
+            headGroup.add(trunkGroup);
+
+            let lastSeg = trunkGroup;
+            const trunkSegments = [];
+            for (let i = 0; i < 7; i++) {
+                const radius = 0.16 - i * 0.018;
+                const segGeo = new THREE.CylinderGeometry(radius, radius + 0.02, 0.16, 12);
+                const seg = new THREE.Mesh(segGeo, skinMat);
+                seg.position.set(0, -0.08, 0.05);
+                seg.rotation.x = 0.28;
+                if (i >= 4) {
+                    seg.rotation.z = -0.25; // Curved tip
+                }
+                lastSeg.add(seg);
+                lastSeg = seg;
+                trunkSegments.push(seg);
+            }
+
+            // Ears (Large decorative elephant ears)
+            const earShape = new THREE.Shape();
+            earShape.moveTo(0, 0);
+            earShape.quadraticCurveTo(0.4, 0.4, 0.65, 0.1);
+            earShape.quadraticCurveTo(0.5, -0.4, 0, -0.3);
+
+            const extrudeSettings = { depth: 0.04, bevelEnabled: true, bevelSegments: 2, steps: 1, bevelSize: 0.02, bevelThickness: 0.02 };
+            const earGeo = new THREE.ExtrudeGeometry(earShape, extrudeSettings);
+
+            // Left Ear
+            const leftEarGroup = new THREE.Group();
+            leftEarGroup.position.set(0.35, 0.05, 0);
+            leftEarGroup.rotation.y = -0.4;
+            const leftEar = new THREE.Mesh(earGeo, skinMat);
+            leftEarGroup.add(leftEar);
+            headGroup.add(leftEarGroup);
+
+            // Right Ear
+            const rightEarGroup = new THREE.Group();
+            rightEarGroup.position.set(-0.35, 0.05, 0);
+            rightEarGroup.rotation.y = Math.PI + 0.4;
+            const rightEar = new THREE.Mesh(earGeo, skinMat);
+            rightEarGroup.add(rightEar);
+            headGroup.add(rightEarGroup);
+
+            // Golden Earrings on ears
+            const earringGeo = new THREE.TorusGeometry(0.08, 0.02, 8, 12);
+            const leftEarring = new THREE.Mesh(earringGeo, goldMat);
+            leftEarring.position.set(0.5, -0.25, 0);
+            leftEarGroup.add(leftEarring);
+
+            const rightEarring = new THREE.Mesh(earringGeo, goldMat);
+            rightEarring.position.set(0.5, -0.25, 0);
+            rightEarGroup.add(rightEarring);
+
+            // Crown (Mukut) - Tiered Golden Crown
+            const crownGroup = new THREE.Group();
+            crownGroup.position.set(0, 0.45, 0);
+            headGroup.add(crownGroup);
+
+            const crownBase = new THREE.Mesh(new THREE.CylinderGeometry(0.45, 0.52, 0.25, 16), goldMat);
+            crownGroup.add(crownBase);
+
+            const crownMid = new THREE.Mesh(new THREE.ConeGeometry(0.38, 0.5, 16), goldMat);
+            crownMid.position.y = 0.35;
+            crownGroup.add(crownMid);
+
+            const crownTop = new THREE.Mesh(new THREE.SphereGeometry(0.12, 12, 12), rubyMat);
+            crownTop.position.y = 0.65;
+            crownGroup.add(crownTop);
+
+            // Forehead Chandan/Tilak Decal
+            const tilakGeo = new THREE.BoxGeometry(0.1, 0.22, 0.02);
+            const tilakMat = new THREE.MeshBasicMaterial({ color: 0xD50000 });
+            const tilak = new THREE.Mesh(tilakGeo, tilakMat);
+            tilak.position.set(0, 0.15, 0.52);
+            headGroup.add(tilak);
+
+            // 3. Limbs (Arms & Legs)
+            // Left Arm
+            const leftArmGroup = new THREE.Group();
+            leftArmGroup.position.set(0.7, 1.7, 0);
+            pelvis.add(leftArmGroup);
+            const armGeo = new THREE.CylinderGeometry(0.12, 0.1, 0.6, 12);
+            const leftArm = new THREE.Mesh(armGeo, skinMat);
+            leftArm.position.y = -0.3;
+            leftArmGroup.add(leftArm);
+
+            // Right Arm
+            const rightArmGroup = new THREE.Group();
+            rightArmGroup.position.set(-0.7, 1.7, 0);
+            pelvis.add(rightArmGroup);
+            const rightArm = new THREE.Mesh(armGeo, skinMat);
+            rightArm.position.y = -0.3;
+            rightArmGroup.add(rightArm);
+
+            // Gold Bangles
+            const bangleGeo = new THREE.TorusGeometry(0.13, 0.03, 8, 12);
+            const leftBangle = new THREE.Mesh(bangleGeo, goldMat);
+            leftBangle.position.y = -0.45;
+            leftBangle.rotation.x = Math.PI / 2;
+            leftArmGroup.add(leftBangle);
+
+            const rightBangle = new THREE.Mesh(bangleGeo, goldMat);
+            rightBangle.position.y = -0.45;
+            rightBangle.rotation.x = Math.PI / 2;
+            rightArmGroup.add(rightBangle);
+
+            // Left Leg
+            const leftLegGroup = new THREE.Group();
+            leftLegGroup.position.set(0.35, 0.75, 0);
+            pelvis.add(leftLegGroup);
+            const legGeo = new THREE.CylinderGeometry(0.16, 0.13, 0.7, 12);
+            const leftLeg = new THREE.Mesh(legGeo, dhotiMat);
+            leftLeg.position.y = -0.35;
+            leftLegGroup.add(leftLeg);
+
+            // Right Leg
+            const rightLegGroup = new THREE.Group();
+            rightLegGroup.position.set(-0.35, 0.75, 0);
+            pelvis.add(rightLegGroup);
+            const rightLeg = new THREE.Mesh(legGeo, dhotiMat);
+            rightLeg.position.y = -0.35;
+            rightLegGroup.add(rightLeg);
+
+            // Divine Aura Shield Mesh (hidden by default)
+            const shieldGeo = new THREE.SphereGeometry(1.8, 24, 24);
+            const shieldMat = new THREE.MeshBasicMaterial({
+                color: 0xFFD700,
+                transparent: true,
+                opacity: 0.3,
+                wireframe: true
+            });
+            const shieldMesh = new THREE.Mesh(shieldGeo, shieldMat);
+            shieldMesh.position.y = 1.3;
+            shieldMesh.visible = false;
+            group.add(shieldMesh);
+
+            return {
+                mesh: group,
+                pelvis,
+                headGroup,
+                trunkSegments,
+                leftEarGroup,
+                rightEarGroup,
+                leftArmGroup,
+                rightArmGroup,
+                leftLegGroup,
+                rightLegGroup,
+                shieldMesh
+            };
+        }
+
+        // =================================================================
+        // WORLD GENERATOR & PROCEDURAL 3D ASSETS
+        // =================================================================
+
+        // Helper: Create detailed 3D Modak
+        function createModakMesh() {
+            const points = [];
+            points.push(new THREE.Vector2(0, 0));
+            points.push(new THREE.Vector2(0.45, 0.15));
+            points.push(new THREE.Vector2(0.6, 0.5));
+            points.push(new THREE.Vector2(0.38, 0.9));
+            points.push(new THREE.Vector2(0.12, 1.2));
+            points.push(new THREE.Vector2(0, 1.35));
+
+            const geo = new THREE.LatheGeometry(points, 12);
+            const mat = new THREE.MeshStandardMaterial({
+                color: 0xFFD700,
+                metalness: 0.7,
+                roughness: 0.2,
+                emissive: 0xFF8C00,
+                emissiveIntensity: 0.3
+            });
+            const modak = new THREE.Mesh(geo, mat);
+            modak.castShadow = true;
+            modak.scale.set(0.65, 0.65, 0.65);
+            return modak;
+        }
+
+        // Helper: Create Durva Grass Bundle
+        function createDurvaMesh() {
+            const group = new THREE.Group();
+            const grassMat = new THREE.MeshStandardMaterial({ color: 0x2E7D32, roughness: 0.6 });
+            for (let i = 0; i < 5; i++) {
+                const blade = new THREE.Mesh(new THREE.ConeGeometry(0.08, 0.8, 5), grassMat);
+                blade.rotation.z = (i - 2) * 0.25;
+                blade.rotation.x = Math.random() * 0.2;
+                group.add(blade);
+            }
+            return group;
+        }
+
+        // Helper: Create Auto Rickshaw Obstacle
+        function createRickshawMesh() {
+            const group = new THREE.Group();
+            const yellowMat = new THREE.MeshStandardMaterial({ color: 0xFFC107, roughness: 0.3 });
+            const blackMat = new THREE.MeshStandardMaterial({ color: 0x212121, roughness: 0.8 });
+            const glassMat = new THREE.MeshStandardMaterial({ color: 0x81D4FA, transparent: true, opacity: 0.6 });
+
+            // Body Base
+            const body = new THREE.Mesh(new THREE.BoxGeometry(1.8, 1.2, 2.4), blackMat);
+            body.position.y = 0.9;
+            group.add(body);
+
+            // Roof Cover
+            const roof = new THREE.Mesh(new THREE.BoxGeometry(1.85, 0.8, 2.2), yellowMat);
+            roof.position.set(0, 1.7, -0.1);
+            group.add(roof);
+
+            // Windshield
+            const glass = new THREE.Mesh(new THREE.BoxGeometry(1.6, 0.7, 0.1), glassMat);
+            glass.position.set(0, 1.6, 0.95);
+            group.add(glass);
+
+            // Wheels
+            const wheelGeo = new THREE.CylinderGeometry(0.35, 0.35, 0.2, 16);
+            wheelGeo.rotateZ(Math.PI / 2);
+            const w1 = new THREE.Mesh(wheelGeo, blackMat);
+            w1.position.set(0, 0.35, 1.0); // Front center wheel
+            group.add(w1);
+
+            const w2 = new THREE.Mesh(wheelGeo, blackMat);
+            w2.position.set(0.85, 0.35, -0.7);
+            group.add(w2);
+
+            const w3 = new THREE.Mesh(wheelGeo, blackMat);
+            w3.position.set(-0.85, 0.35, -0.7);
+            group.add(w3);
+
+            return group;
+        }
+
+        // Helper: Create Low Jump Barricade / Flower Cart
+        function createLowBarricadeMesh() {
+            const group = new THREE.Group();
+            const woodMat = new THREE.MeshStandardMaterial({ color: 0x8D6E63, roughness: 0.8 });
+            const marigoldMat = new THREE.MeshStandardMaterial({ color: 0xFF6F00 });
+
+            // Wooden Frame
+            const post1 = new THREE.Mesh(new THREE.CylinderGeometry(0.1, 0.1, 1.1, 8), woodMat);
+            post1.position.set(-1.2, 0.55, 0);
+            group.add(post1);
+
+            const post2 = new THREE.Mesh(new THREE.CylinderGeometry(0.1, 0.1, 1.1, 8), woodMat);
+            post2.position.set(1.2, 0.55, 0);
+            group.add(post2);
+
+            const plank = new THREE.Mesh(new THREE.BoxGeometry(2.6, 0.35, 0.12), woodMat);
+            plank.position.set(0, 0.75, 0);
+            group.add(plank);
+
+            // Marigold Garlands draped over
+            for (let i = -1.1; i <= 1.1; i += 0.25) {
+                const flower = new THREE.Mesh(new THREE.SphereGeometry(0.1, 8, 8), marigoldMat);
+                flower.position.set(i, 0.55 + Math.sin(i * 3) * 0.1, 0.08);
+                group.add(flower);
+            }
+
+            return group;
+        }
+
+        // Helper: Create Overhead Garland Archway (Slide Obstacle)
+        function createHighArchwayMesh() {
+            const group = new THREE.Group();
+            const woodMat = new THREE.MeshStandardMaterial({ color: 0x5D4037 });
+            const flowerMat = new THREE.MeshStandardMaterial({ color: 0xFF3D00 });
+
+            const p1 = new THREE.Mesh(new THREE.CylinderGeometry(0.12, 0.12, 4.2, 8), woodMat);
+            p1.position.set(-1.6, 2.1, 0);
+            group.add(p1);
+
+            const p2 = new THREE.Mesh(new THREE.CylinderGeometry(0.12, 0.12, 4.2, 8), woodMat);
+            p2.position.set(1.6, 2.1, 0);
+            group.add(p2);
+
+            // Low Hanging Decorative Banner Block
+            const banner = new THREE.Mesh(new THREE.BoxGeometry(3.4, 1.8, 0.15), flowerMat);
+            banner.position.set(0, 3.2, 0); // Bottom hangs down to y=2.3
+            group.add(banner);
+
+            return group;
+        }
+
+        // Helper: Create Indian Residential House
+        function createIndianHouseMesh(colorHex) {
+            const group = new THREE.Group();
+            const wallMat = new THREE.MeshStandardMaterial({ color: colorHex, roughness: 0.7 });
+            const roofMat = new THREE.MeshStandardMaterial({ color: 0xA04000, roughness: 0.5 }); // Terracotta
+            const trimMat = new THREE.MeshStandardMaterial({ color: 0xFFD700, roughness: 0.4 });
+
+            // House Main Body (2 stories)
+            const main = new THREE.Mesh(new THREE.BoxGeometry(6, 7, 10), wallMat);
+            main.position.y = 3.5;
+            main.castShadow = true;
+            main.receiveShadow = true;
+            group.add(main);
+
+            // Terracotta Roof Trim
+            const roof = new THREE.Mesh(new THREE.BoxGeometry(6.4, 0.6, 10.4), roofMat);
+            roof.position.y = 7.2;
+            group.add(roof);
+
+            // Balcony
+            const balcony = new THREE.Mesh(new THREE.BoxGeometry(4, 0.3, 1.5), trimMat);
+            balcony.position.set(0, 4.2, 5.2);
+            group.add(balcony);
+
+            return group;
+        }
+
+        // =================================================================
+        // MAIN GAME ENGINE & CONTROLLER CLASS
+        // =================================================================
+        class GameEngine {
+            constructor() {
+                // DOM Elements
+                this.canvas = document.getElementById('game-canvas');
+                this.hudTop = document.getElementById('hud-top');
+                this.hudScore = document.getElementById('hud-score');
+                this.hudDistance = document.getElementById('hud-distance');
+                this.hudModaks = document.getElementById('hud-modaks');
+                this.hudCombo = document.getElementById('hud-combo');
+                this.hudComboText = document.getElementById('hud-combo-text');
+                this.hudPowerups = document.getElementById('hud-powerups');
+                this.hudShieldIndicator = document.getElementById('hud-shield-indicator');
+
+                this.menuStart = document.getElementById('menu-start');
+                this.menuGameOver = document.getElementById('menu-gameover');
+                this.menuPause = document.getElementById('menu-pause');
+                this.btnPause = document.getElementById('btn-pause');
+
+                this.toast = document.getElementById('toast-notification');
+                this.toastText = document.getElementById('toast-text');
+
+                // Audio
+                this.audio = new AudioManager();
+
+                // State Variables
+                this.state = 'TITLE'; // TITLE, PLAYING, PAUSED, GAMEOVER
+                this.score = 0;
+                this.distance = 0;
+                this.modaksCollected = 0;
+                this.combo = 1;
+                this.speed = 22;
+                this.baseSpeed = 22;
+                this.maxSpeed = 48;
+
+                // Player Mechanics
+                this.lane = 1; // Lanes: 0 (-3.5), 1 (0), 2 (3.5)
+                this.laneX = [ -3.5, 0, 3.5 ];
+                this.playerPos = new THREE.Vector3(0, 0, 0);
+                this.playerVelY = 0;
+                this.isJumping = false;
+                this.isSliding = false;
+                this.slideTimer = 0;
+
+                // Active Power-ups State
+                this.powerups = {
+                    shield: false,
+                    magnetTimer: 0,
+                    dashTimer: 0,
+                    multiplierTimer: 0
+                };
+
+                // Missions System
+                this.missions = [
+                    { id: 1, text: "Collect 30 Modaks", target: 30, current: 0, completed: false, type: "modaks" },
+                    { id: 2, text: "Reach 400m distance", target: 400, current: 0, completed: false, type: "distance" },
+                    { id: 3, text: "Achieve 3x Combo", target: 3, current: 0, completed: false, type: "combo" }
+                ];
+
+                // LocalStorage Stats
+                this.highScore = parseInt(localStorage.getItem('modak_dash_highscore') || '0');
+                this.totalModaks = parseInt(localStorage.getItem('modak_dash_totalmodaks') || '0');
+
+                // Scene, Camera, Renderer
+                this.scene = null;
+                this.camera = null;
+                this.renderer = null;
+                this.ganesha = null;
+
+                // Dynamic Track Chunks & Obstacles
+                this.chunks = [];
+                this.obstacles = [];
+                this.collectibles = [];
+                this.chunkLength = 40;
+                this.spawnZ = 0;
+
+                // Particle Systems
+                this.petals = null;
+
+                this.clock = new THREE.Clock();
+                this.cameraShake = 0;
+
+                this.initThree();
+                this.initEvents();
+                this.updateUI();
+            }
+
+            initThree() {
+                // Scene
+                this.scene = new THREE.Scene();
+                this.scene.background = new THREE.Color(0xFFE0B2); // Warm daylight glow
+                this.scene.fog = new THREE.FogExp2(0xFFE0B2, 0.012);
+
+                // Camera
+                this.camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.1, 200);
+                this.camera.position.set(0, 3.8, 7.5);
+
+                // Renderer
+                this.renderer = new THREE.WebGLRenderer({ canvas: this.canvas, antialias: true });
+                this.renderer.setSize(window.innerWidth, window.innerHeight);
+                this.renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+                this.renderer.shadowMap.enabled = true;
+                this.renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+
+                // Lighting
+                const ambientLight = new THREE.AmbientLight(0xFFE0B2, 0.8);
+                this.scene.add(ambientLight);
+
+                const sunLight = new THREE.DirectionalLight(0xFFF59D, 1.2);
+                sunLight.position.set(20, 40, 20);
+                sunLight.castShadow = true;
+                sunLight.shadow.mapSize.width = 1024;
+                sunLight.shadow.mapSize.height = 1024;
+                sunLight.shadow.camera.near = 0.5;
+                sunLight.shadow.camera.far = 100;
+                sunLight.shadow.camera.left = -15;
+                sunLight.shadow.camera.right = 15;
+                sunLight.shadow.camera.top = 30;
+                sunLight.shadow.camera.bottom = -10;
+                this.scene.add(sunLight);
+
+                // Add Ganesha Character
+                this.ganesha = createGaneshaCharacter();
+                this.scene.add(this.ganesha.mesh);
+
+                // Build Monumental Distant Ganesha Landmark
+                this.buildMonumentalPandal();
+
+                // Build Initial Chunks
+                for (let i = 0; i < 6; i++) {
+                    this.spawnChunk();
+                }
+
+                // Add Flower Petal Particle System
+                this.initPetalParticles();
+            }
+
+            // Monumental Landmark Pandal at the horizon
+            buildMonumentalPandal() {
+                const group = new THREE.Group();
+                group.position.set(0, 0, -160);
+
+                const goldMat = new THREE.MeshStandardMaterial({ color: 0xFFD700, metalness: 0.8 });
+                const maroonMat = new THREE.MeshStandardMaterial({ color: 0x800000 });
+
+                // Pandal Pillars
+                const p1 = new THREE.Mesh(new THREE.CylinderGeometry(1.5, 1.8, 18, 16), goldMat);
+                p1.position.set(-12, 9, 0);
+                group.add(p1);
+
+                const p2 = new THREE.Mesh(new THREE.CylinderGeometry(1.5, 1.8, 18, 16), goldMat);
+                p2.position.set(12, 9, 0);
+                group.add(p2);
+
+                // Grand Arch
+                const arch = new THREE.Mesh(new THREE.BoxGeometry(28, 4, 3), maroonMat);
+                arch.position.set(0, 18, 0);
+                group.add(arch);
+
+                // Giant Golden Idol Backdrop
+                const idol = new THREE.Mesh(new THREE.SphereGeometry(6, 16, 16), goldMat);
+                idol.position.set(0, 10, -4);
+                group.add(idol);
+
+                this.scene.add(group);
+                this.monumentalPandal = group;
+            }
+
+            // Floating Marigold Petals Particle System
+            initPetalParticles() {
+                const count = 150;
+                const geo = new THREE.BufferGeometry();
+                const positions = new Float32Array(count * 3);
+
+                for (let i = 0; i < count * 3; i += 3) {
+                    positions[i] = (Math.random() - 0.5) * 30;
+                    positions[i + 1] = Math.random() * 10;
+                    positions[i + 2] = -Math.random() * 80;
+                }
+
+                geo.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+                const mat = new THREE.PointsMaterial({
+                    color: 0xFF6F00,
+                    size: 0.25,
+                    transparent: true,
+                    opacity: 0.8
+                });
+
+                this.petals = new THREE.Points(geo, mat);
+                this.scene.add(this.petals);
+            }
+
+            spawnChunk() {
+                const chunk = new THREE.Group();
+                chunk.position.z = this.spawnZ;
+
+                // Road Surface
+                const roadGeo = new THREE.PlaneGeometry(12, this.chunkLength);
+                const roadMat = new THREE.MeshStandardMaterial({ color: 0x3E2723, roughness: 0.9 });
+                const road = new THREE.Mesh(roadGeo, roadMat);
+                road.rotation.x = -Math.PI / 2;
+                road.position.y = 0;
+                road.position.z = -this.chunkLength / 2;
+                road.receiveShadow = true;
+                chunk.add(road);
+
+                // Sidewalks
+                const sideMat = new THREE.MeshStandardMaterial({ color: 0xD7CCC8 });
+                const leftSide = new THREE.Mesh(new THREE.BoxGeometry(3, 0.3, this.chunkLength), sideMat);
+                leftSide.position.set(-7.5, 0.15, -this.chunkLength / 2);
+                chunk.add(leftSide);
+
+                const rightSide = new THREE.Mesh(new THREE.BoxGeometry(3, 0.3, this.chunkLength), sideMat);
+                rightSide.position.set(7.5, 0.15, -this.chunkLength / 2);
+                chunk.add(rightSide);
+
+                // Houses on both sides
+                const colors = [ 0x800000, 0xE65100, 0xF57F17, 0x004D40 ];
+                const leftHouse = createIndianHouseMesh(colors[Math.floor(Math.random() * colors.length)]);
+                leftHouse.position.set(-10.5, 0, -this.chunkLength / 2);
+                leftHouse.rotation.y = Math.PI / 2;
+                chunk.add(leftHouse);
+
+                const rightHouse = createIndianHouseMesh(colors[Math.floor(Math.random() * colors.length)]);
+                rightHouse.position.set(10.5, 0, -this.chunkLength / 2);
+                rightHouse.rotation.y = -Math.PI / 2;
+                chunk.add(rightHouse);
+
+                this.scene.add(chunk);
+                this.chunks.push({ group: chunk, z: this.spawnZ });
+
+                // Spawn Obstacles & Collectibles on chunk if past initial safety zone
+                if (this.spawnZ < -30) {
+                    this.populateChunkItems(this.spawnZ);
+                }
+
+                this.spawnZ -= this.chunkLength;
+            }
+
+            populateChunkItems(chunkZ) {
+                const laneX = [ -3.5, 0, 3.5 ];
+                const numItems = 2 + Math.floor(Math.random() * 2);
+
+                for (let i = 0; i < numItems; i++) {
+                    const zOffset = -(Math.random() * (this.chunkLength - 10) + 5);
+                    const itemZ = chunkZ + zOffset;
+                    const laneIdx = Math.floor(Math.random() * 3);
+                    const x = laneX[laneIdx];
+
+                    const rand = Math.random();
+
+                    if (rand < 0.4) {
+                        // Spawn Modak Collectibles line/pattern
+                        for (let k = 0; k < 3; k++) {
+                            const modak = createModakMesh();
+                            modak.position.set(x, 0.8, itemZ - k * 2.2);
+                            this.scene.add(modak);
+                            this.collectibles.push({ mesh: modak, type: 'modak', active: true });
+                        }
+                    } else if (rand < 0.65) {
+                        // Low Barrier Obstacle (Jump)
+                        const bar = createLowBarricadeMesh();
+                        bar.position.set(x, 0, itemZ);
+                        this.scene.add(bar);
+                        this.obstacles.push({ mesh: bar, type: 'low', lane: laneIdx, z: itemZ, bounds: { width: 2.2, height: 1.0, depth: 0.6 } });
+                    } else if (rand < 0.85) {
+                        // High Overhead Arch Obstacle (Slide)
+                        const arch = createHighArchwayMesh();
+                        arch.position.set(x, 0, itemZ);
+                        this.scene.add(arch);
+                        this.obstacles.push({ mesh: arch, type: 'high', lane: laneIdx, z: itemZ, bounds: { width: 2.5, height: 1.8, minY: 1.4 } });
+                    } else {
+                        // Vehicle Rickshaw Obstacle (Dodge)
+                        const rickshaw = createRickshawMesh();
+                        rickshaw.position.set(x, 0, itemZ);
+                        this.scene.add(rickshaw);
+                        this.obstacles.push({ mesh: rickshaw, type: 'full', lane: laneIdx, z: itemZ, bounds: { width: 1.8, height: 2.0, depth: 2.4 } });
+                    }
+                }
+            }
+
+            initEvents() {
+                // Resize listener
+                window.addEventListener('resize', () => {
+                    this.camera.aspect = window.innerWidth / window.innerHeight;
+                    this.camera.updateProjectionMatrix();
+                    this.renderer.setSize(window.innerWidth, window.innerHeight);
+                });
+
+                // Keyboard listener
+                window.addEventListener('keydown', (e) => {
+                    if (this.state !== 'PLAYING') return;
+
+                    if (e.key === 'ArrowLeft' || e.key === 'a' || e.key === 'A') {
+                        this.switchLane(-1);
+                    } else if (e.key === 'ArrowRight' || e.key === 'd' || e.key === 'D') {
+                        this.switchLane(1);
+                    } else if (e.key === 'ArrowUp' || e.key === 'w' || e.key === 'W' || e.key === ' ') {
+                        this.jump();
+                    } else if (e.key === 'ArrowDown' || e.key === 's' || e.key === 'S') {
+                        this.slide();
+                    } else if (e.key === 'Escape' || e.key === 'p' || e.key === 'P') {
+                        this.togglePause();
+                    }
+                });
+
+                // Touch / Swipe Controls for Mobile
+                let touchStartX = 0;
+                let touchStartY = 0;
+
+                window.addEventListener('touchstart', (e) => {
+                    touchStartX = e.touches[0].clientX;
+                    touchStartY = e.touches[0].clientY;
+                }, { passive: true });
+
+                window.addEventListener('touchend', (e) => {
+                    if (this.state !== 'PLAYING') return;
+                    const diffX = e.changedTouches[0].clientX - touchStartX;
+                    const diffY = e.changedTouches[0].clientY - touchStartY;
+
+                    if (Math.abs(diffX) > Math.abs(diffY)) {
+                        if (Math.abs(diffX) > 30) {
+                            if (diffX > 0) this.switchLane(1);
+                            else this.switchLane(-1);
+                        }
+                    } else {
+                        if (Math.abs(diffY) > 30) {
+                            if (diffY < 0) this.jump();
+                            else this.slide();
+                        }
+                    }
+                }, { passive: true });
+
+                // UI Buttons
+                document.getElementById('btn-start').onclick = () => this.startGame();
+                document.getElementById('btn-restart').onclick = () => this.startGame();
+                document.getElementById('btn-pause').onclick = () => this.togglePause();
+                document.getElementById('btn-resume').onclick = () => this.togglePause();
+                document.getElementById('btn-quit').onclick = () => this.quitToMenu();
+
+                const audioBtn = document.getElementById('btn-audio-toggle');
+                audioBtn.onclick = () => {
+                    const isMuted = this.audio.toggleMute();
+                    document.getElementById('audio-icon').className = isMuted ? 'fa-solid fa-volume-xmark text-xl text-red-400' : 'fa-solid fa-volume-high text-xl';
+                };
+            }
+
+            switchLane(dir) {
+                const targetLane = this.lane + dir;
+                if (targetLane >= 0 && targetLane <= 2) {
+                    this.lane = targetLane;
+                    this.audio.playSwoosh();
+                }
+            }
+
+            jump() {
+                if (!this.isJumping && !this.isSliding) {
+                    this.isJumping = true;
+                    this.playerVelY = 13.5;
+                    this.audio.playJump();
+                }
+            }
+
+            slide() {
+                if (!this.isSliding) {
+                    this.isSliding = true;
+                    this.slideTimer = 0.7; // Slide for 0.7s
+                    if (this.isJumping) {
+                        this.playerVelY = -18; // Fast descent if sliding mid-air
+                    }
+                    this.audio.playSlide();
+                }
+            }
+
+            startGame() {
+                this.audio.init();
+                this.audio.ensureContext();
+                this.audio.startDholRhythm();
+
+                this.state = 'PLAYING';
+                this.score = 0;
+                this.distance = 0;
+                this.modaksCollected = 0;
+                this.combo = 1;
+                this.speed = this.baseSpeed;
+                this.lane = 1;
+
+                this.playerPos.set(0, 0, 0);
+                this.ganesha.mesh.position.set(0, 0, 0);
+
+                this.powerups = { shield: false, magnetTimer: 0, dashTimer: 0, multiplierTimer: 0 };
+
+                // Reset Missions
+                this.missions.forEach(m => { m.current = 0; m.completed = false; });
+
+                // Clear Old Obstacles & Collectibles
+                this.obstacles.forEach(o => this.scene.remove(o.mesh));
+                this.collectibles.forEach(c => this.scene.remove(c.mesh));
+                this.obstacles = [];
+                this.collectibles = [];
+
+                // UI Visibility
+                this.menuStart.classList.add('hidden');
+                this.menuGameOver.classList.add('hidden');
+                this.menuPause.classList.add('hidden');
+                this.hudTop.classList.remove('hidden');
+                this.btnPause.classList.remove('hidden');
+
+                this.clock.start();
+                this.loop();
+            }
+
+            togglePause() {
+                if (this.state === 'PLAYING') {
+                    this.state = 'PAUSED';
+                    this.menuPause.classList.remove('hidden');
+                    this.audio.stopDholRhythm();
+                } else if (this.state === 'PAUSED') {
+                    this.state = 'PLAYING';
+                    this.menuPause.classList.add('hidden');
+                    this.audio.startDholRhythm();
+                    this.clock.start();
+                    this.loop();
+                }
+            }
+
+            quitToMenu() {
+                this.state = 'TITLE';
+                this.audio.stopDholRhythm();
+                this.menuPause.classList.add('hidden');
+                this.hudTop.classList.add('hidden');
+                this.btnPause.classList.add('hidden');
+                this.menuStart.classList.remove('hidden');
+                this.updateUI();
+            }
+
+            loop() {
+                if (this.state !== 'PLAYING') return;
+
+                requestAnimationFrame(() => this.loop());
+
+                const delta = Math.min(this.clock.getDelta(), 0.1);
+
+                this.updatePlayer(delta);
+                this.updateWorld(delta);
+                this.updateCollisions();
+                this.updateMissions();
+                this.updateCamera(delta);
+                this.updateUI();
+
+                this.renderer.render(this.scene, this.camera);
+            }
+
+            updatePlayer(delta) {
+                // Forward movement
+                const currentSpeed = this.powerups.dashTimer > 0 ? this.speed * 1.6 : this.speed;
+                this.playerPos.z -= currentSpeed * delta;
+                this.distance = Math.floor(-this.playerPos.z);
+
+                // Speed Scaling over distance
+                if (this.speed < this.maxSpeed) {
+                    this.speed += delta * 0.15;
+                }
+
+                // Smooth Lane Interpolation
+                const targetX = this.laneX[this.lane];
+                this.playerPos.x += (targetX - this.playerPos.x) * delta * 18;
+
+                // Jump Physics
+                if (this.isJumping) {
+                    this.playerPos.y += this.playerVelY * delta;
+                    this.playerVelY -= 38 * delta; // Gravity
+
+                    if (this.playerPos.y <= 0) {
+                        this.playerPos.y = 0;
+                        this.isJumping = false;
+                        this.playerVelY = 0;
+                    }
+                }
+
+                // Slide Timer
+                if (this.isSliding) {
+                    this.slideTimer -= delta;
+                    if (this.slideTimer <= 0) {
+                        this.isSliding = false;
+                    }
+                }
+
+                // Power-up Timers
+                if (this.powerups.dashTimer > 0) this.powerups.dashTimer -= delta;
+                if (this.powerups.magnetTimer > 0) this.powerups.magnetTimer -= delta;
+                if (this.powerups.multiplierTimer > 0) this.powerups.multiplierTimer -= delta;
+
+                // Sync 3D Mesh
+                this.ganesha.mesh.position.copy(this.playerPos);
+
+                // Character Procedural Animations
+                const runCycle = Date.now() * 0.012;
+                if (this.isJumping) {
+                    this.ganesha.leftLegGroup.rotation.x = -0.8;
+                    this.ganesha.rightLegGroup.rotation.x = 0.5;
+                    this.ganesha.leftArmGroup.rotation.x = 1.2;
+                    this.ganesha.rightArmGroup.rotation.x = -1.2;
+                } else if (this.isSliding) {
+                    this.ganesha.pelvis.position.y = -0.6;
+                    this.ganesha.pelvis.rotation.x = -0.5;
+                } else {
+                    this.ganesha.pelvis.position.y = 0;
+                    this.ganesha.pelvis.rotation.x = 0;
+                    // Running limb sway
+                    this.ganesha.leftLegGroup.rotation.x = Math.sin(runCycle) * 0.75;
+                    this.ganesha.rightLegGroup.rotation.x = -Math.sin(runCycle) * 0.75;
+                    this.ganesha.leftArmGroup.rotation.x = -Math.sin(runCycle) * 0.75;
+                    this.ganesha.rightArmGroup.rotation.x = Math.sin(runCycle) * 0.75;
+                    this.ganesha.headGroup.rotation.z = Math.sin(runCycle * 0.5) * 0.05;
+                }
+
+                // Shield mesh visibility
+                this.ganesha.shieldMesh.visible = this.powerups.shield || this.powerups.dashTimer > 0;
+
+                // Score accumulation
+                const mult = this.powerups.multiplierTimer > 0 ? 2 : 1;
+                this.score += Math.floor(currentSpeed * delta * this.combo * mult);
+            }
+
+            updateWorld(delta) {
+                // Recycle chunks behind camera
+                this.chunks.forEach((chunk) => {
+                    if (chunk.z > this.playerPos.z + 20) {
+                        chunk.z = this.spawnZ;
+                        chunk.group.position.z = this.spawnZ;
+                        this.spawnZ -= this.chunkLength;
+                        this.populateChunkItems(chunk.z);
+                    }
+                });
+
+                // Animate Collectibles (Rotation)
+                this.collectibles.forEach((c) => {
+                    if (c.active) {
+                        c.mesh.rotation.y += delta * 3;
+
+                        // Magnet Effect (Attract to player)
+                        if (this.powerups.magnetTimer > 0) {
+                            const dist = c.mesh.position.distanceTo(this.playerPos);
+                            if (dist < 12) {
+                                c.mesh.position.lerp(this.playerPos, delta * 8);
+                            }
+                        }
+                    }
+                });
+
+                // Move distant Monumental Pandal along with player horizon
+                if (this.monumentalPandal) {
+                    this.monumentalPandal.position.z = this.playerPos.z - 160;
+                }
+            }
+
+            updateCamera(delta) {
+                // Third-person camera follow
+                const targetCamX = this.playerPos.x * 0.4;
+                const targetCamY = this.playerPos.y + 3.8;
+                const targetCamZ = this.playerPos.z + 7.5;
+
+                this.camera.position.x += (targetCamX - this.camera.position.x) * delta * 8;
+                this.camera.position.y += (targetCamY - this.camera.position.y) * delta * 8;
+                this.camera.position.z = targetCamZ;
+
+                // Look slightly ahead of player
+                this.camera.lookAt(this.playerPos.x * 0.2, this.playerPos.y + 1.6, this.playerPos.z - 8);
+
+                // Dynamic FOV for Dash Boost
+                const targetFOV = this.powerups.dashTimer > 0 ? 75 : 60;
+                this.camera.fov += (targetFOV - this.camera.fov) * delta * 4;
+                this.camera.updateProjectionMatrix();
+            }
+
+            updateCollisions() {
+                const pBox = {
+                    x: this.playerPos.x,
+                    y: this.playerPos.y,
+                    z: this.playerPos.z,
+                    width: 0.8,
+                    height: this.isSliding ? 0.8 : 1.8
+                };
+
+                // Check Obstacle Collisions
+                this.obstacles.forEach((o) => {
+                    if (Math.abs(o.z - pBox.z) < 1.2 && o.lane === this.lane) {
+                        let hit = false;
+
+                        if (o.type === 'low') {
+                            // Hit if not jumping high enough
+                            if (pBox.y < o.bounds.height) hit = true;
+                        } else if (o.type === 'high') {
+                            // Hit if not sliding
+                            if (pBox.y + pBox.height > o.bounds.minY) hit = true;
+                        } else if (o.type === 'full') {
+                            hit = true;
+                        }
+
+                        if (hit) {
+                            // Invincible during Divine Dash
+                            if (this.powerups.dashTimer > 0) return;
+
+                            // Shield protection
+                            if (this.powerups.shield) {
+                                this.powerups.shield = false;
+                                o.z = 999; // Remove obstacle
+                                this.audio.playCrash();
+                                return;
+                            }
+
+                            // Game Over
+                            this.gameOver();
+                        }
+                    }
+                });
+
+                // Check Collectible Pickups
+                this.collectibles.forEach((c) => {
+                    if (c.active && c.mesh.position.distanceTo(this.playerPos) < 1.4) {
+                        c.active = false;
+                        c.mesh.visible = false;
+
+                        this.modaksCollected++;
+                        this.combo = Math.min(this.combo + 1, 5);
+                        this.audio.playCollect();
+
+                        // Random Powerup chance on 10th modak
+                        if (this.modaksCollected % 12 === 0) {
+                            this.triggerRandomPowerup();
+                        }
+                    }
+                });
+            }
+
+            triggerRandomPowerup() {
+                const types = ['shield', 'magnet', 'dash', 'multiplier'];
+                const picked = types[Math.floor(Math.random() * types.length)];
+                this.audio.playPowerup();
+
+                if (picked === 'shield') this.powerups.shield = true;
+                if (picked === 'magnet') this.powerups.magnetTimer = 8;
+                if (picked === 'dash') this.powerups.dashTimer = 5;
+                if (picked === 'multiplier') this.powerups.multiplierTimer = 10;
+            }
+
+            updateMissions() {
+                this.missions.forEach((m) => {
+                    if (m.completed) return;
+                    if (m.type === 'modaks') m.current = this.modaksCollected;
+                    if (m.type === 'distance') m.current = this.distance;
+                    if (m.type === 'combo') m.current = this.combo;
+
+                    if (m.current >= m.target) {
+                        m.completed = true;
+                        this.showToast(`Mission Completed: ${m.text}`);
+                    }
+                });
+            }
+
+            showToast(text) {
+                this.toastText.innerText = text;
+                this.toast.classList.remove('hidden');
+                this.toast.classList.add('flex');
+                setTimeout(() => {
+                    this.toast.classList.add('hidden');
+                    this.toast.classList.remove('flex');
+                }, 3000);
+            }
+
+            gameOver() {
+                this.state = 'GAMEOVER';
+                this.audio.playCrash();
+                this.audio.stopDholRhythm();
+
+                let isNewHigh = false;
+                if (this.score > this.highScore) {
+                    this.highScore = this.score;
+                    localStorage.setItem('modak_dash_highscore', this.highScore.toString());
+                    isNewHigh = true;
+                }
+
+                this.totalModaks += this.modaksCollected;
+                localStorage.setItem('modak_dash_totalmodaks', this.totalModaks.toString());
+
+                // Update Game Over UI
+                document.getElementById('go-final-score').innerText = this.score;
+                document.getElementById('go-distance').innerText = `${this.distance}m`;
+                document.getElementById('go-modaks').innerText = `${this.modaksCollected} 🍥`;
+
+                const badge = document.getElementById('new-highscore-badge');
+                if (isNewHigh) badge.classList.remove('hidden');
+                else badge.classList.add('hidden');
+
+                // Render Missions summary
+                const container = document.getElementById('go-missions-container');
+                container.innerHTML = '';
+                this.missions.forEach((m) => {
+                    const div = document.createElement('div');
+                    div.className = 'text-xs p-2 rounded-lg bg-amber-900/40 border border-amber-500/20 flex justify-between items-center';
+                    div.innerHTML = `<span>${m.text}</span> <span class="${m.completed ? 'text-green-400 font-bold' : 'text-amber-200/60'}">${m.completed ? 'COMPLETED ✓' : `${m.current}/${m.target}`}</span>`;
+                    container.appendChild(div);
+                });
+
+                this.hudTop.classList.add('hidden');
+                this.btnPause.classList.add('hidden');
+                this.menuGameOver.classList.remove('hidden');
+            }
+
+            updateUI() {
+                // HUD Scores
+                this.hudScore.innerText = this.score;
+                this.hudDistance.innerText = `${this.distance}m`;
+                this.hudModaks.innerText = this.modaksCollected;
+
+                // Start Menu Stats
+                document.getElementById('start-highscore').innerText = this.highScore;
+                document.getElementById('start-total-modaks').innerText = this.totalModaks;
+
+                // Render Start Missions
+                const startMissionsContainer = document.getElementById('start-missions-container');
+                if (startMissionsContainer.children.length === 0) {
+                    this.missions.forEach((m) => {
+                        const div = document.createElement('div');
+                        div.className = 'text-xs p-2 rounded-xl bg-amber-950/60 border border-amber-500/30 flex justify-between items-center text-amber-200';
+                        div.innerHTML = `<span><i class="fa-solid fa-bullseye text-amber-400 mr-2"></i>${m.text}</span> <span class="font-bold text-amber-400">0/${m.target}</span>`;
+                        startMissionsContainer.appendChild(div);
+                    });
+                }
+
+                // Combo Badge
+                if (this.combo > 1) {
+                    this.hudCombo.classList.remove('hidden', 'scale-0');
+                    this.hudCombo.classList.add('scale-100');
+                    this.hudComboText.innerText = `${this.combo}x COMBO`;
+                } else {
+                    this.hudCombo.classList.add('hidden', 'scale-0');
+                }
+
+                // Shield Indicator
+                if (this.powerups.shield) {
+                    this.hudShieldIndicator.classList.remove('hidden');
+                } else {
+                    this.hudShieldIndicator.classList.add('hidden');
+                }
+            }
+        }
+
+        // Initialize Game Engine when Window loads
+        window.onload = () => {
+            window.game = new GameEngine();
+        };
+    </script>
+</body>
+</html>
